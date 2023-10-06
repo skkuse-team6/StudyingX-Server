@@ -25,7 +25,7 @@ pip install transformers==4.11.3 datasets==1.14.0
 
 ### 3. Configure STT API Key
 To use the Speech-To-Text (STT) functionality, you'll need to configure your STT API key.
-(Actually, I've already shared the API key on Slack as a text file. You just need to assign the received API key to the following part in the main.py file.)
+~~(Actually, I've already shared the API key on Slack as a text file. You just need to assign the received API key to the following part in the main.py file.)~~
 
 ```
 openai.api_key = ""

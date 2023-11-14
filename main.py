@@ -12,11 +12,24 @@ from langchain.callbacks import get_openai_callback
 import shutil
 import openai
 import os
+import uuid
 
 #Set os vairable To use the langchain library
 os.environ["OPENAI_API_KEY"] = ""
 
 app = FastAPI()
+
+def save_uploaded_file(upload_dir: str, file: UploadFile):
+    # 랜덤한 파일 이름 생성하는 부분
+    extension = os.path.splitext(file.filename)[1]
+    random_file_name = f"{uuid.uuid4()}{extension}"
+    file_path = os.path.join(upload_dir, random_file_name)
+
+    # 파일 저장하는 부분
+    with open(file_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    
+    return random_file_name
 
 @app.post("/upload/")
 async def upload_audio_file(file: UploadFile):
@@ -25,11 +38,11 @@ async def upload_audio_file(file: UploadFile):
         upload_dir = "uploads"
         os.makedirs(upload_dir, exist_ok=True)
 
-        # save file
-        with open(os.path.join(upload_dir, file.filename), "wb") as f:
-            shutil.copyfileobj(file.file, f)
+        
+        random_file_name = save_uploaded_file(upload_dir, file)
 
-        return {"message": "File uploaded successfully"}
+        return {"message": "File uploaded successfully", "file_name": random_file_name}
+
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

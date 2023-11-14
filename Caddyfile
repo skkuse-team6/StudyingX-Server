@@ -1,5 +1,5 @@
 api.dotoleeoak.me {
-  handle {
-    reverse_proxy fastapi:8000
-  }
+	handle {
+		reverse_proxy fastapi:8000
+	}
 }

@@ -7,3 +7,9 @@ trim_trailing_whitespace = true
 
 [*.py]
 indent_size = 4
+
+[*.yml]
+indent_size = 2
+
+[Caddyfile]
+indent_size = 2

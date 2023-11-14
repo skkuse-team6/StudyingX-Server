@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+  app:
+    container_name: fastapi
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./data:/app/uploads
+    env_file: .env
+
+  caddy:
+    container_name: caddy
+    image: caddy:2.7.5-alpine
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - $PWD/Caddyfile:/etc/caddy/Caddyfile

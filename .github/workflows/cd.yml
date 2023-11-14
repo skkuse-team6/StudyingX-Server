@@ -1,0 +1,25 @@
+name: CD - Development
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-server:
+    name: Run development server
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Build Docker image
+        run: docker compose build app
+
+      - name: Run docker compose up
+        run: docker compose up -d

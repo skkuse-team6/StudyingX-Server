@@ -9,4 +9,4 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 RUN pip install --upgrade pip setuptools wheel && \
     pip install -r requirements.txt
 
-CMD ["python3", "-m", "uvicorn", "main:app" "--host=0.0.0.0"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host=0.0.0.0"]

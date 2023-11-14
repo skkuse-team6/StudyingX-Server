@@ -1,10 +1,15 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
+from dotenv import load_dotenv
 import shutil
 import openai
 import os
 
 app = FastAPI()
+
+load_dotenv()  # Load .env file
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 
 @app.post("/upload/")
 async def upload_audio_file(file: UploadFile):
@@ -22,6 +27,7 @@ async def upload_audio_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/download/{filename}")
 async def download_audio_file(filename: str):
     try:
@@ -33,10 +39,14 @@ async def download_audio_file(filename: str):
             raise HTTPException(status_code=404, detail="File not found")
 
         # file download
-        return FileResponse(file_path, headers={"Content-Disposition": f"attachment; filename={filename}"})
+        return FileResponse(
+            file_path,
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/transcribe_whisper/")
 async def transcribe_audio_file(file: UploadFile):
@@ -62,6 +72,7 @@ async def transcribe_audio_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/Summary_gpt/")
 async def pdf_summary(file: UploadFile):
     try:
@@ -78,7 +89,9 @@ async def pdf_summary(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    # uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    # uvicorn main:app

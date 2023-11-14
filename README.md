@@ -10,17 +10,16 @@ To run the project, follow these steps:
 
 ### 1. Setup Python Virtual Environment
 
+Create a new virtual environment:
+
+```bash
+python3 -m venv venv
+```
+
 If venv is not installed, install it with the following command:
 
 ```bash
 sudo apt-get install python3-venv # Ubuntu
-# brew install python3-venv # MacOS
-```
-
-Then, create a new virtual environment:
-
-```bash
-python3 -m venv venv
 ```
 
 Activate the virtual environment:

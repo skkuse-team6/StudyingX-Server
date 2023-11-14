@@ -65,7 +65,7 @@ async def transcribe_audio_file(file: UploadFile):
         content = open(os.path.join(upload_dir, file.filename), "rb")
 
         # STT 설정 및 호출
-        openai.api_key = ""
+        openai.api_key = OPENAI_API_KEY
         transcript = openai.Audio.transcribe("whisper-1", content)
 
         # return {"text": transcript}

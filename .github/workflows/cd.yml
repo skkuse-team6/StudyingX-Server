@@ -22,4 +22,7 @@ jobs:
         run: docker compose build app
 
       - name: Run docker compose up
-        run: docker compose up -d
+        run: docker compose up -d app
+
+      - name: Reload Cady
+        run: docker exec -w /etc/caddy caddy caddy reload

@@ -13,9 +13,15 @@ import shutil
 import openai
 import os
 import uuid
+from dotenv import load_dotenv
+
+# load value in .env file
+load_dotenv()
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 #Set os vairable To use the langchain library
-os.environ["OPENAI_API_KEY"] = ""
+os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 app = FastAPI()
 
@@ -28,7 +34,7 @@ def save_uploaded_file(upload_dir: str, file: UploadFile):
     # 파일 저장하는 부분
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
-    
+
     return random_file_name
 
 @app.post("/upload/")
@@ -38,7 +44,6 @@ async def upload_audio_file(file: UploadFile):
         upload_dir = "uploads"
         os.makedirs(upload_dir, exist_ok=True)
 
-        
         random_file_name = save_uploaded_file(upload_dir, file)
 
         return {"message": "File uploaded successfully", "file_name": random_file_name}
@@ -78,7 +83,7 @@ async def transcribe_audio_file(file: UploadFile):
         content = open(os.path.join(upload_dir, file.filename), "rb")
 
         # STT 설정 및 호출
-        openai.api_key = ""
+        openai.api_key = OPENAI_API_KEY
         transcript = openai.Audio.transcribe("whisper-1", content)
 
         # return {"text": transcript}
@@ -134,7 +139,7 @@ async def pdf_summary(file: UploadFile, input_data: str):
             if query:
                 #os 변수로 지정해서 해결하려했지만, similarity_search 부분이나 load_qa_chain에서 openai함수만을
                 #인식하는 것 같습니다. 통일성이 조금 떨어질 부분인 것 같습니다.
-                openai.api_key = ""
+                openai.api_key = OPENAI_API_KEY
                 docs = VectorStore.similarity_search(query=query, k=3)
 
                 llm = OpenAI()

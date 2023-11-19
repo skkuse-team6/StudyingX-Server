@@ -28,32 +28,31 @@ app = FastAPI()
 def save_uploaded_file(upload_dir: str, file: UploadFile):
     # 랜덤한 파일 이름 생성하는 부분
     extension = os.path.splitext(file.filename)[1]
-    random_file_name = f"{uuid.uuid4()}{extension}"
-    file_path = os.path.join(upload_dir, random_file_name)
+    file_id = f"{uuid.uuid4()}{extension}"
+    file_path = os.path.join(upload_dir, file_id)
 
     # 파일 저장하는 부분
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    return random_file_name
+    return file_id
 
 @app.post("/upload/")
-async def upload_audio_file(file: UploadFile):
+async def upload_file(file: UploadFile):
     try:
         # file을 저장할 directory
         upload_dir = "uploads"
         os.makedirs(upload_dir, exist_ok=True)
 
-        random_file_name = save_uploaded_file(upload_dir, file)
+        file_id = save_uploaded_file(upload_dir, file)
 
-        return {"message": "File uploaded successfully", "file_name": random_file_name}
-
+        return {"message": "File uploaded successfully", "file_id": file_id}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/download/{filename}")
-async def download_audio_file(filename: str):
+async def download_file(filename: str):
     try:
         # saved path
         file_path = os.path.join("uploads", filename)
@@ -147,10 +146,36 @@ async def pdf_summary(file: UploadFile, input_data: str):
                 with get_openai_callback() as cb:
                     response = chain.run(input_documents=docs, question=query)
 
-
         # return {"text": mytext}
         return {"text": response}
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+##### file 목록 읽기
+def get_file_list(directory):
+    try:
+        files = os.listdir(directory)
+        return {"files": files}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/get_file_list/")
+async def list_files(directory: str = "uploads"):
+    return get_file_list(directory)
+
+##### file 삭제
+@app.delete("/delete_file/{file_id}")
+async def delete_file(file_id: str, upload_dir: str = "uploads"):
+    try:
+        file_path = os.path.join(upload_dir, file_id)
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return {"message": "File deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

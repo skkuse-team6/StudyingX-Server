@@ -14,6 +14,14 @@ import openai
 import os
 import uuid
 from dotenv import load_dotenv
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
+# need install for langchain
+from langchain.schema.document import Document
+from langchain.document_loaders import PyPDFLoader
+from langchain.indexes import VectorstoreIndexCreator
+from langchain.chains import RetrievalQA
+from langchain.chat_models import ChatOpenAI
 
 # load value in .env file
 load_dotenv()
@@ -92,62 +100,65 @@ async def transcribe_audio_file(file: UploadFile):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/Summary_gpt/")
-async def pdf_summary(file: UploadFile, input_data: str):
+async def pdf_summary(input_data):
     try:
-        # file을 저장할 directory
-        upload_dir = "uploads/pdf"
-        os.makedirs(upload_dir, exist_ok=True)
+        #Load File
+        pdf_file = input_data["file-id"]
+        
+        if (os.path.splitext(pdf_file)[1]=='.pdf'):
+            loader = PyPDFLoader(pdf_file)
+            document = loader.load()
+        else:
+            return -1
 
-        # save file
-        with open(os.path.join(upload_dir, file.filename), "wb") as f:
-            shutil.copyfileobj(file.file, f)
+        #Split Document
+        text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=0)
+        docs = text_splitter.split_documents(document)
+        script = [Document(page_content=x) for x in text_splitter.split_text(input_data["script"])]
 
-        # pdf file 읽기
-        pdf = open(os.path.join(upload_dir, file.filename), "rb")
+        #Save Vector
+        index = VectorstoreIndexCreator(
+                vectorstore_cls=FAISS,
+                embedding=OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"]),
+                ).from_documents(docs)
+        index.vectorstore.save_local(os.path.splitext(pdf_file)[0])
+        index = VectorstoreIndexCreator(
+                vectorstore_cls=FAISS,
+                embedding=OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"]),
+                ).from_documents(script)
+        index.vectorstore.save_local(os.path.splitext(pdf_file)[0]+'_script')
 
-        if pdf is not None:
-            pdf_reader = PdfReader(pdf)
+        #PDF QA
+        chat = ChatOpenAI(model_name='gpt-4', temperature=0.9, openai_api_key=os.environ["OPENAI_API_KEY"])
+        fdb = FAISS.load_local(os.path.splitext(pdf_file)[0], OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"]))
+        retriever = fdb.as_retriever(search_type='similarity', search_kwargs={"k":2})
+        qa = RetrievalQA.from_chain_type(llm=chat,
+                                        chain_type="stuff", retriever=retriever)
+        
+        outline = qa.run('Make an outline of this document').split('\n')
+        # print(outline)
 
-            text = ""
-            for page in pdf_reader.pages:
-                text += page.extract_text()
-
-            # parameter for tuning
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200,
-                length_function=len
-            )
-
-            chunks = text_splitter.split_text(text=text)
-            # # embeddings
-            store_name = pdf.name[:-4]
-
-            if os.path.exists(f"{store_name}.pkl"):
-                with open(f"{store_name}.pkl", "rb") as f:
-                    VectorStore = pickle.load(f)
-                # st.write('Embeddings Loaded from the Disk')s
-            else:
-                embeddings = OpenAIEmbeddings()
-                VectorStore = FAISS.from_texts(chunks, embedding=embeddings)
-                with open(f"{store_name}.pkl", "wb") as f:
-                    pickle.dump(VectorStore, f)
-
-            query = input_data
-
-            if query:
-                #os 변수로 지정해서 해결하려했지만, similarity_search 부분이나 load_qa_chain에서 openai함수만을
-                #인식하는 것 같습니다. 통일성이 조금 떨어질 부분인 것 같습니다.
-                openai.api_key = OPENAI_API_KEY
-                docs = VectorStore.similarity_search(query=query, k=3)
-
-                llm = OpenAI()
-                chain = load_qa_chain(llm=llm, chain_type="stuff")
-                with get_openai_callback() as cb:
-                    response = chain.run(input_documents=docs, question=query)
-
-        # return {"text": mytext}
-        return {"text": response}
+        #Script QA
+        fdb = FAISS.load_local(os.path.splitext(pdf_file)[0]+'_script', OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"]))
+        retriever = fdb.as_retriever(search_type='similarity', search_kwargs={"k":2})
+        qa = RetrievalQA.from_chain_type(llm=chat, chain_type="stuff", retriever=retriever)
+        
+        return_text = ''
+        for subject in outline:
+            if subject == '':
+                continue
+            return_text += subject + '\n'
+            prompt = "Find suitable content from the provided document and summarize it into a single paragraph that will go under the heading \'" + subject + "\'. If you don't know the answer, just return '0'."
+            # print("-----------------------------------------------------")
+            # print(prompt)
+            answer = qa.run(prompt)
+            if answer == '0':
+                continue
+            # print(answer)
+            return_text += answer + '\n\n'
+        
+        # print(return_text)
+        return {"text": return_text}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

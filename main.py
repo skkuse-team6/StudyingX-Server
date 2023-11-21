@@ -45,7 +45,7 @@ def save_uploaded_file(upload_dir: str, file: UploadFile):
 
     return file_id
 
-@app.post("/upload/")
+@app.post("/upload_file/")
 async def upload_file(file: UploadFile):
     try:
         # file을 저장할 directory
@@ -59,23 +59,51 @@ async def upload_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/download/{filename}")
-async def download_file(filename: str):
+@app.get("/download_file/{file_id}")
+async def download_file(file_id: str):
     try:
         # saved path
-        file_path = os.path.join("uploads", filename)
+        file_path = os.path.join("uploads", file_id)
 
         # 파일이 존재하지 않으면 404 반환
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="File not found")
 
         # file download
-        return FileResponse(file_path, headers={"Content-Disposition": f"attachment; filename={filename}"})
+        return FileResponse(file_path, headers={"Content-Disposition": f"attachment; filen_id={file_id}"})
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/transcribe_whisper/")
+##### file 삭제
+@app.delete("/delete_file/{file_id}")
+async def delete_file(file_id: str, upload_dir: str = "uploads"):
+    try:
+        file_path = os.path.join(upload_dir, file_id)
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return {"message": "File deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+##### file 목록 읽기
+def get_file_list(directory):
+    try:
+        files = os.listdir(directory)
+        return {"files": files}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/get_file_list/")
+async def list_files(directory: str = "uploads"):
+    return get_file_list(directory)
+
+
+@app.post("/Speech-to-Text/")
 async def transcribe_audio_file(file: UploadFile):
     try:
         # upload 디렉토리 생성 or path 설정
@@ -99,7 +127,7 @@ async def transcribe_audio_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/Summary_gpt/")
+@app.post("/PDF_Summary/")
 async def pdf_summary(input_data):
     try:
         #Load File
@@ -163,32 +191,6 @@ async def pdf_summary(input_data):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-##### file 목록 읽기
-def get_file_list(directory):
-    try:
-        files = os.listdir(directory)
-        return {"files": files}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/get_file_list/")
-async def list_files(directory: str = "uploads"):
-    return get_file_list(directory)
-
-##### file 삭제
-@app.delete("/delete_file/{file_id}")
-async def delete_file(file_id: str, upload_dir: str = "uploads"):
-    try:
-        file_path = os.path.join(upload_dir, file_id)
-
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return {"message": "File deleted successfully"}
-        else:
-            raise HTTPException(status_code=404, detail="File not found")
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

@@ -49,7 +49,7 @@ def save_uploaded_file(upload_dir: str, file: UploadFile):
 async def upload_file(file: UploadFile):
     try:
         # file을 저장할 directory
-        upload_dir = "uploads"
+        upload_dir = "uploads/pdf"
         os.makedirs(upload_dir, exist_ok=True)
 
         file_id = save_uploaded_file(upload_dir, file)
@@ -131,7 +131,7 @@ async def transcribe_audio_file(file: UploadFile):
 async def pdf_summary(file_id: str, script: str, model_gpt: str):
     try:
         #Load File
-        upload_dir = "uploads"
+        upload_dir = "uploads/pdf"
         if not file_id.endswith('.pdf'):
             file_name = file_id + '.pdf'
         else:

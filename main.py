@@ -132,7 +132,10 @@ async def pdf_summary(file_id: str):
     try:
         #Load File
         upload_dir = "uploads/pdf"
-        file_name = file_id + ".pdf"
+        if not file_id.endswith('.pdf'):
+            file_name = file_id + '.pdf'
+        else:
+            file_name = file_id
 
         # pdf file 읽기
         pdf = open(os.path.join(upload_dir, file_name), "rb")

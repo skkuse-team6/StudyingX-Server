@@ -128,7 +128,7 @@ async def transcribe_audio_file(file: UploadFile):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/PDF_Summary/")
-async def pdf_summary(file_id: str):
+async def pdf_summary(file_id: str, script: str):
     try:
         #Load File
         upload_dir = "uploads/pdf"
@@ -172,7 +172,7 @@ async def pdf_summary(file_id: str):
                 with open(f"{store_name}.pkl", "wb") as f:
                     pickle.dump(VectorStore, f)
 
-            query = "Find suitable content from the provided document and summarize it into a single paragraph that will go under the heading. Please write in English"
+            query = "This is my additional sentence of professor's user." + script + "Find suitable content from the provided document and summarize it into a single paragraph that will go under the heading. Please write in English"
 
             if query:
                 #os 변수로 지정해서 해결하려했지만, similarity_search 부분이나 load_qa_chain에서 openai함수만을

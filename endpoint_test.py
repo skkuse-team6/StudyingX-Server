@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 import main
 from main import app
 
-
 client = TestClient(app)
 
 def test_upload_file():
@@ -26,11 +25,12 @@ def test_Speech_to_Text():
     assert response.json()["text"] is not None
 
 def test_PDF_Summary():
-    file_id = "56f88173-2f9a-4961-be1d-c6e6ac796a9f.pdf"
+    file_id = "handbook.pdf"
     script = "dd"
+    model = "gpt-3.5-turbo"
     response = client.post(
         "/PDF_Summary/",
-        json={"file_id": file_id, "script": script}
+        params={'file_id': file_id, 'script': script, 'model_gpt': model}
     )
 
     assert response.status_code == 200

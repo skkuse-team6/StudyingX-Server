@@ -1,8 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
+
 # need install for langchain
 import pickle
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
@@ -16,6 +17,7 @@ import uuid
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
+
 # need install for langchain
 from langchain.schema.document import Document
 from langchain.document_loaders import PyPDFLoader
@@ -28,10 +30,11 @@ load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-#Set os vairable To use the langchain library
+# Set os vairable To use the langchain library
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 app = FastAPI()
+
 
 def save_uploaded_file(upload_dir: str, file: UploadFile):
     # 랜덤한 파일 이름 생성하는 부분
@@ -44,6 +47,7 @@ def save_uploaded_file(upload_dir: str, file: UploadFile):
         shutil.copyfileobj(file.file, f)
 
     return file_id
+
 
 @app.post("/upload_file/")
 async def upload_file(file: UploadFile):
@@ -59,6 +63,7 @@ async def upload_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/download_file/{file_id}")
 async def download_file(file_id: str):
     try:
@@ -70,10 +75,14 @@ async def download_file(file_id: str):
             raise HTTPException(status_code=404, detail="File not found")
 
         # file download
-        return FileResponse(file_path, headers={"Content-Disposition": f"attachment; filen_id={file_id}"})
+        return FileResponse(
+            file_path,
+            headers={"Content-Disposition": f"attachment; filen_id={file_id}"},
+        )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 ##### file 삭제
 @app.delete("/delete_file/{file_id}")
@@ -90,6 +99,7 @@ async def delete_file(file_id: str, upload_dir: str = "uploads"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 ##### file 목록 읽기
 def get_file_list(directory):
     try:
@@ -97,6 +107,7 @@ def get_file_list(directory):
         return {"files": files}
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.get("/get_file_list/")
 async def list_files(directory: str = "uploads"):
@@ -127,13 +138,14 @@ async def transcribe_audio_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/PDF_Summary/")
 async def pdf_summary(file_id: str, script: str, model_gpt: str):
     try:
-        #Load File
+        # Load File
         upload_dir = "uploads"
-        if not file_id.endswith('.pdf'):
-            file_name = file_id + '.pdf'
+        if not file_id.endswith(".pdf"):
+            file_name = file_id + ".pdf"
         else:
             file_name = file_id
 
@@ -141,8 +153,8 @@ async def pdf_summary(file_id: str, script: str, model_gpt: str):
         pdf = open(os.path.join(upload_dir, file_name), "rb")
 
         # recognize the extension for pdfgpt
-        #file_extension = os.path.splitext(file_name)[1].lower()
-        #print(file_extension)
+        # file_extension = os.path.splitext(file_name)[1].lower()
+        # print(file_extension)
 
         if pdf is not None:
             pdf_reader = PdfReader(pdf)
@@ -153,9 +165,7 @@ async def pdf_summary(file_id: str, script: str, model_gpt: str):
 
             # parameter for tuning
             text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200,
-                length_function=len
+                chunk_size=1000, chunk_overlap=200, length_function=len
             )
 
             chunks = text_splitter.split_text(text=text)
@@ -172,20 +182,23 @@ async def pdf_summary(file_id: str, script: str, model_gpt: str):
                 with open(f"{store_name}.pkl", "wb") as f:
                     pickle.dump(VectorStore, f)
 
-            query = "This is my additional sentence of professor's user." + script + "Find suitable content from the provided document and summarize it into a single paragraph that will go under the heading. Please write in Korean"
+            query = (
+                "This is my additional sentence of professor's user."
+                + script
+                + "Find suitable content from the provided document and summarize it into a single paragraph that will go under the heading. Please write in Korean"
+            )
 
             if query:
-                #os 변수로 지정해서 해결하려했지만, similarity_search 부분이나 load_qa_chain에서 openai함수만을
-                #인식하는 것 같습니다. 통일성이 조금 떨어질 부분인 것 같습니다.
+                # os 변수로 지정해서 해결하려했지만, similarity_search 부분이나 load_qa_chain에서 openai함수만을
+                # 인식하는 것 같습니다. 통일성이 조금 떨어질 부분인 것 같습니다.
                 openai.api_key = OPENAI_API_KEY
                 docs = VectorStore.similarity_search(query=query, k=3)
 
-                #need to change the model gpt-3.5-turbo or gpt-4
+                # need to change the model gpt-3.5-turbo or gpt-4
                 llm = ChatOpenAI(model_name=model_gpt, temperature=0.9)
                 chain = load_qa_chain(llm=llm, chain_type="stuff")
                 with get_openai_callback() as cb:
                     response = chain.run(input_documents=docs, question=query)
-
 
         # return {"text": mytext}
         return {"text": response}
@@ -196,5 +209,6 @@ async def pdf_summary(file_id: str, script: str, model_gpt: str):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
     # uvicorn main:app --host 0.0.0.0 --port 8000 --reload

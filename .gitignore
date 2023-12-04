@@ -177,3 +177,5 @@ pyrightconfig.json
 
 # Mac OS
 .DS_Store
+
+uploads/*

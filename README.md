@@ -1,6 +1,6 @@
 # StudyingX-Server
 
-A user-friendly education tool utilizaing cutting-edge technologies to record and organize educators' speech and lecture content.
+A user-friendly education tool utilizaing cutting-edge technologies to record and organize educators' speech and lecture content. [PPT](https://github.com/skkuse-team6/StudyingX-Server/blob/main/ppt.pdf)
 
 ---
 
